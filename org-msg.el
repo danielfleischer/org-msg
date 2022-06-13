@@ -374,6 +374,15 @@ file."
 (defun org-msg-save-article-for-reply-mu4e ()
   "Export the currently visited mu4e article as HTML."
   (let* ((msg mu4e-compose-parent-message)
+    	 ;; (html (with-temp-buffer
+	 ;; 	 (insert-file-contents (mu4e-message-readable-path msg))
+	 ;; 	 (quoted-printable-decode-region (point-min) (point-max) 'utf-8)
+	 ;; 	 (beginning-of-buffer)
+	 ;; 	 (search-forward "DOCTYPE html" nil t)
+	 ;; 	 (delete-region (point-min) (line-beginning-position))
+	 ;; 	 (search-forward "</html>" nil t)
+	 ;; 	 (buffer-substring-no-properties
+	 ;; 	  (point-min) (line-end-position))))
 	 (html (mu4e-message-field msg :body-html))
 	 (file (make-temp-file "org-msg" nil ".html")))
     (cl-flet* ((mails2str (l)
@@ -1160,7 +1169,12 @@ a html mime part, it returns t, nil otherwise."
 
 (defun org-msg-article-htmlp-mu4e ()
   "Return t if the current mu4e article is HTML article."
-  (when (mu4e-message-field mu4e-compose-parent-message :body-html) t))
+  (let ((msg mu4e-compose-parent-message))
+    (or (mu4e-message-field msg :body-html)
+       (with-temp-buffer
+	 (insert-file-contents-literally
+	  (mu4e-message-readable-path msg) nil nil nil t)
+	 (org-msg-article-htmlp)))))
 
 (defun org-msg-article-htmlp-notmuch ()
   "Return t if the current notmuch article is an HTML article."
