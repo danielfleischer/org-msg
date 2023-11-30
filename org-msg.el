@@ -1472,11 +1472,10 @@ HTML emails."
 
 (defun org-msg-edit-mode-mu4e ()
   "Setup mu4e faces, addresses completion and run mu4e."
-  (mu4e~compose-remap-faces)
   (unless (mu4e-running-p)
     (mu4e~start))
   (when mu4e-compose-complete-addresses
-    (mu4e~compose-setup-completion))
+    (mu4e--compose-setup-completion))
   ;; the following code is verbatim from mu4e-compose.el, `mu4e-compose-mode'
   ;; this will setup fcc (saving sent messages) and handle flags
   ;; (e.g. replied to)
