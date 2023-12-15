@@ -1473,34 +1473,39 @@ HTML emails."
 (defun org-msg-edit-mode-mu4e ()
   "Setup mu4e faces, addresses completion and run mu4e."
   (unless (mu4e-running-p)
-    (mu4e~start))
+    (mu4e--start))
   (when mu4e-compose-complete-addresses
     (mu4e--compose-setup-completion))
   ;; the following code is verbatim from mu4e-compose.el, `mu4e-compose-mode'
   ;; this will setup fcc (saving sent messages) and handle flags
   ;; (e.g. replied to)
   (add-hook 'message-send-hook
-	    (if (functionp #'mu4e~setup-fcc-message-sent-hook-fn)
-		#'mu4e~setup-fcc-message-sent-hook-fn
-	      (lambda ()
-		;; when in-reply-to was removed, remove references as well.
-		(when (eq mu4e-compose-type 'reply)
-		  (mu4e~remove-refs-maybe))
-		(when use-hard-newlines
-		  (mu4e-send-harden-newlines))
-		;; for safety, always save the draft before sending
-		(set-buffer-modified-p t)
-		(save-buffer)
-		(mu4e~compose-setup-fcc-maybe)
-		(widen)))
+	    (lambda ()
+	      ;; when in-reply-to was removed, remove references as well.
+	      (when (eq mu4e-compose-type 'reply)
+		(unless (message-fetch-field "In-Reply-To")
+		  (message-remove-header "References")))
+	      (when use-hard-newlines
+		(mu4e--send-harden-newlines))
+	      ;; for safety, always save the draft before sending
+	      (set-buffer-modified-p t)
+	      (save-buffer)
+	      (widen))
 	    nil t)
   ;; when the message has been sent.
   (add-hook 'message-sent-hook
-	    (if (functionp #'mu4e~set-sent-handler-message-sent-hook-fn)
-		#'mu4e~set-sent-handler-message-sent-hook-fn
+	    (if (functionp #'mu4e--compose-after-send)
+		#'mu4e--compose-after-send
 	      (lambda ()
 		(setq mu4e-sent-func 'mu4e-sent-handler)
-		(mu4e~proc-sent (buffer-file-name))))
+		(mu4e--server-sent (buffer-file-name))
+		(when message-kill-buffer-on-exit
+		  (dolist (buf (buffer-list))
+		    (and (buffer-file-name buf)
+			 (string= (buffer-file-name buf) path)
+			 (kill-buffer buf))))
+		;; (mu4e~switch-back-to-mu4e-buffer)
+		(mu4e-message "Message sent")))
 	    nil t))
 
 (defalias 'org-msg-edit-kill-buffer-mu4e 'mu4e-message-kill-buffer)
