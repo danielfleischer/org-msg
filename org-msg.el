@@ -1499,33 +1499,7 @@ HTML emails."
     (org-msg--mu4e-fun-call "start"))
   (when mu4e-compose-complete-addresses
     (org-msg--mu4e-fun-call "compose-setup-completion"))
-  ;; the following code is verbatim from mu4e-compose.el, `mu4e-compose-mode'
-  ;; this will setup fcc (saving sent messages) and handle flags
-  ;; (e.g. replied to)
-  (add-hook 'message-send-hook
-	    (if-let ((fun (org-msg--mu4e-fun "setup-fcc-message-sent-hook-fn")))
-		fun
-	      (lambda ()
-		;; when in-reply-to was removed, remove references as well.
-		(when (eq mu4e-compose-type 'reply)
-		  (mu4e~remove-refs-maybe))
-		(when use-hard-newlines
-		  (org-msg--mu4e-fun-call "send-harden-newlines"))
-		;; for safety, always save the draft before sending
-		(set-buffer-modified-p t)
-		(save-buffer)
-		(org-msg--mu4e-fun-call "compose-setup-fcc-maybe")
-		(widen)))
-	    nil t)
-  ;; when the message has been sent.
-  (add-hook 'message-sent-hook
-	    (if-let ((fun (org-msg--mu4e-fun
-			   "set-sent-handler-message-sent-hook-fn")))
-		fun
-	      (lambda ()
-		(setq mu4e-sent-func 'mu4e-sent-handler)
-		(mu4e~proc-sent (buffer-file-name))))
-	    nil t))
+  (add-hook 'message-sent-hook #'mu4e--compose-after-send nil t))
 
 (defalias 'org-msg-edit-kill-buffer-mu4e 'mu4e-message-kill-buffer)
 
@@ -1564,7 +1538,7 @@ Type \\[org-msg-attach] to call the dispatcher for attachment
 \\{org-msg-edit-mode-map}"
   (setq-local message-sent-message-via nil)
   (add-hook 'message-send-hook 'org-msg-prepare-to-send nil t)
-  (add-hook 'message-sent-hook 'undo t t)
+  ;; (add-hook 'message-sent-hook 'undo t t)
   (add-hook 'completion-at-point-functions 'message-completion-function nil t)
   (cond ((message-mail-alias-type-p 'abbrev) (mail-abbrevs-setup))
 	((message-mail-alias-type-p 'ecomplete) (ecomplete-setup)))
